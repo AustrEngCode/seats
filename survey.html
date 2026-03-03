@@ -1,0 +1,219 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seating Planner · Survey</title>
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="top">
+      <div class="brand"><div class="logo"></div><h1>Seating Planner · Survey</h1></div>
+      <div class="small" id="studentName"></div>
+    </header>
+
+    <div id="alert" class="alert info" style="display:none"></div>
+
+    <div class="card" id="seatWishCard">
+      <h2>Choose your preferred seat (optional)</h2>
+      <div class="legend">
+        <span class="badge door">Door half</span>
+        <span class="badge">Aisle</span>
+        <span class="badge window">Window half</span>
+      </div>
+      <div id="seatGrid" class="seat-grid"></div>
+      <div class="small">Selected: <span id="seatCode">None</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Door / Window Preference</h2>
+      <div class="row">
+        <label><input type="radio" name="zone" value="any" checked> Any</label>
+        <label><input type="radio" name="zone" value="door"> Door half</label>
+        <label><input type="radio" name="zone" value="window"> Window half</label>
+        <label style="margin-left:1rem"><input type="checkbox" id="zoneMust"> Must</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Who would you like to sit next to? (optional)</h2>
+      <div id="likeList" class="row"></div>
+    </div>
+
+    <div class="card">
+      <h2>Who would you rather not sit next to? (optional)</h2>
+      <div id="ratherNotList" class="row"></div>
+    </div>
+
+    <div class="card">
+      <h2>Which pairs should probably not sit together? (optional)</h2>
+      <div class="small">Pick one or more pairs that shouldn’t sit together. Select first name, then second name, and click “Add Pair”.</div>
+      <div class="row">
+        <select id="pnA"></select>
+        <select id="pnB"></select>
+        <button class="btn" id="addPair">Add Pair</button>
+      </div>
+      <ul id="pairsList"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Discipline Ratings (1 = very disciplined … 5 = easily distracted)</h2>
+      <div id="ratings"></div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <button class="btn" id="submitBtn">Submit</button>
+        <button class="btn secondary" id="clearBtn">Clear selections</button>
+      </div>
+      <div id="submitMsg" class="small"></div>
+    </div>
+
+    <footer>
+      <span class="badge">Remember: Your wishes are weighted by discipline totals.</span>
+    </footer>
+  </div>
+
+  <script type="module">
+    import { getTokenFromUrl, api, buildSeatGrid, createEl } from './assets/js/common.js';
+
+    const token = getTokenFromUrl();
+    const alertBox = document.getElementById('alert');
+
+    function showAlert(msg, type='info'){
+      alertBox.textContent = msg; alertBox.className = `alert ${type}`; alertBox.style.display='block';
+    }
+
+    let me = null; // current student
+    let roster = [];
+    let pairs = [];
+
+    // Build seat grid
+    const seatTarget = document.getElementById('seatGrid');
+    const seatHandle = buildSeatGrid(seatTarget, (code)=>{
+      document.getElementById('seatCode').textContent = code||'None';
+    });
+
+    function buildCheckboxList(whereEl, id, students){
+      whereEl.innerHTML='';
+      students.forEach(s=>{
+        const lab=document.createElement('label'); lab.style.minWidth='180px'; lab.style.display='inline-flex'; lab.style.alignItems='center'; lab.style.gap='.4rem';
+        const cb=document.createElement('input'); cb.type='checkbox'; cb.value=s.id; cb.name=id; cb.dataset.name = s.name;
+        lab.appendChild(cb); lab.appendChild(document.createTextNode(s.name));
+        whereEl.appendChild(lab);
+      });
+    }
+
+    function buildRatings(whereEl, students){
+      const table=document.createElement('table'); table.className='table';
+      const thead=document.createElement('thead');
+      thead.innerHTML = `<tr><th>Name</th><th class="center">1</th><th class="center">2</th><th class="center">3</th><th class="center">4</th><th class="center">5</th></tr>`;
+      table.appendChild(thead);
+      const tbody=document.createElement('tbody');
+      students.forEach(s=>{
+        const tr=document.createElement('tr');
+        const tdN=document.createElement('td'); tdN.textContent = s.name; tr.appendChild(tdN);
+        for(let k=1;k<=5;k++){
+          const td=document.createElement('td'); td.className='center';
+          const r=document.createElement('input'); r.type='radio'; r.name=`rate_${s.id}`; r.value=String(k);
+          td.appendChild(r); tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody); whereEl.innerHTML=''; whereEl.appendChild(table);
+    }
+
+    function collect(name){ return Array.from(document.querySelectorAll(`input[name='${name}']:checked`)).map(cb=>cb.value) }
+
+    function collectPairs(){
+      return pairs.slice();
+    }
+
+    function collectRatings(students){
+      const rows=[];
+      students.forEach(s=>{
+        const v = document.querySelector(`input[name='rate_${s.id}']:checked`);
+        if(v) rows.push({ rateeId: s.id, score: Number(v.value) });
+      });
+      return rows;
+    }
+
+    async function load(){
+      if(!token){ showAlert('Missing token. Please use your personal link.', 'error'); return; }
+      try{
+        // Expect backend to return: { student:{id,name}, class:{students:[{id,name},...]}, preselect?:{seatWish, zone} }
+        const data = await api(`/status?token=${encodeURIComponent(token)}`);
+        me = data.student; roster = data.class.students;
+        document.getElementById('studentName').textContent = `Logged as: ${me.name}`;
+
+        // Populate lists (exclude self for like/rather-not)
+        const others = roster.filter(s=>s.id!==me.id);
+        buildCheckboxList(document.getElementById('likeList'), 'like', others);
+        buildCheckboxList(document.getElementById('ratherNotList'), 'ratherNot', others);
+
+        // Pairs dropdowns include everyone
+        const pnA=document.getElementById('pnA'); const pnB=document.getElementById('pnB');
+        roster.forEach(s=>{ const o=new Option(s.name, s.id); pnA.add(o.cloneNode(true)); pnB.add(o); });
+
+        // Ratings table: includes everyone incl. self
+        buildRatings(document.getElementById('ratings'), roster);
+
+        // Preselects
+        if(data.preselect && data.preselect.seatWish){ seatHandle.select(data.preselect.seatWish); document.getElementById('seatCode').textContent=data.preselect.seatWish; }
+        if(data.preselect && data.preselect.zone){ const z = data.preselect.zone.pref || 'any'; const must = !!data.preselect.zone.must; const r = document.querySelector(`input[name='zone'][value='${z}']`); if(r) r.checked=true; document.getElementById('zoneMust').checked = must; }
+      }catch(err){
+        console.error(err);
+        showAlert('Could not load your survey. Please try again later or contact the teacher.','error');
+      }
+    }
+
+    document.getElementById('addPair').addEventListener('click', ()=>{
+      const a = document.getElementById('pnA').value; const b = document.getElementById('pnB').value;
+      if(!a||!b||a===b) return;
+      // store pair as sorted tuple to avoid dupes
+      const pair = [a,b].sort();
+      if(!pairs.find(p=>p[0]===pair[0] && p[1]===pair[1])){
+        pairs.push(pair);
+        const ul=document.getElementById('pairsList');
+        const li=document.createElement('li');
+        const na = roster.find(s=>s.id===pair[0])?.name || pair[0];
+        const nb = roster.find(s=>s.id===pair[1])?.name || pair[1];
+        li.textContent = `${na} — ${nb}`;
+        ul.appendChild(li);
+      }
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      document.querySelectorAll("input[type='checkbox']").forEach(x=> x.checked=false);
+      document.querySelectorAll("input[type='radio']").forEach(x=> x.checked=false);
+      pairs=[]; document.getElementById('pairsList').innerHTML='';
+      seatHandle.select(null); document.getElementById('seatCode').textContent='None';
+    });
+
+    document.getElementById('submitBtn').addEventListener('click', async ()=>{
+      try{
+        const zoneRadio = document.querySelector("input[name='zone']:checked");
+        const payload = {
+          token,
+          like: collect('like'),
+          ratherNot: collect('ratherNot'),
+          mustNot: collectPairs(),
+          zone: { pref: zoneRadio? zoneRadio.value : 'any', must: document.getElementById('zoneMust').checked },
+          seatWish: seatHandle.getSelected() || null,
+          ratings: collectRatings(roster)
+        };
+        const res = await api('/submitSurvey', {method:'POST', body: payload});
+        document.getElementById('submitMsg').textContent = 'Thank you! Your responses were submitted.';
+        showAlert('Submission received. You can close this tab now.','ok');
+      }catch(err){
+        console.error(err);
+        showAlert('Submission failed. Please try again in a moment.','error');
+      }
+    });
+
+    load();
+  </script>
+</body>
+</html>

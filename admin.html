@@ -1,0 +1,134 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seating Planner · Admin</title>
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="top">
+      <div class="brand"><div class="logo"></div><h1>Admin</h1></div>
+      <a class="btn ghost" href="/">Home</a>
+    </header>
+
+    <div class="card" id="loginCard">
+      <h2>Admin Sign‑in</h2>
+      <div class="row">
+        <input id="adminKey" type="password" class="input" placeholder="Enter admin password" />
+        <button class="btn" id="loginBtn">Sign in</button>
+      </div>
+      <div id="loginMsg" class="small"></div>
+    </div>
+
+    <div id="adminArea" style="display:none">
+      <div class="card">
+        <h2>Roster</h2>
+        <div class="small">Paste one student per line. You can include your five test students (29‑XY … 33‑XY) or click the button below.</div>
+        <textarea id="rosterText" rows="8" class="input" placeholder="Beate\nAmel\nTobias ..."></textarea>
+        <div class="row" style="margin-top:.5rem">
+          <button class="btn" id="btnAddTest">Add 29‑XY … 33‑XY</button>
+          <button class="btn secondary" id="btnSaveRoster">Save Roster</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tokens</h2>
+        <div class="row">
+          <button class="btn" id="btnGenTokens">Generate/Regenerate Tokens</button>
+          <button class="btn secondary" id="btnExportLinks">Export Links (CSV)</button>
+        </div>
+        <div id="tokensMsg" class="small"></div>
+      </div>
+
+      <div class="card">
+        <h2>Status</h2>
+        <div class="row">
+          <button class="btn ghost" id="btnRefresh">Refresh</button>
+          <button class="btn" id="btnSolve">Run Solver</button>
+        </div>
+        <div id="statusArea" class="small"></div>
+      </div>
+    </div>
+
+    <footer><span class="badge">Admin is protected with an app setting (x-admin-key).</span></footer>
+  </div>
+
+  <script type="module">
+    import { api, createEl } from './assets/js/common.js';
+
+    const loginCard = document.getElementById('loginCard');
+    const adminArea = document.getElementById('adminArea');
+
+    function getKey(){ return localStorage.getItem('ADMIN_KEY') || '' }
+    function setKey(v){ localStorage.setItem('ADMIN_KEY', v) }
+
+    async function call(path, opts={}){
+      const headers = Object.assign({}, (opts.headers||{}), {'x-admin-key': getKey()});
+      return api(path, Object.assign({}, opts, { headers }));
+    }
+
+    document.getElementById('loginBtn').addEventListener('click', async ()=>{
+      const k = document.getElementById('adminKey').value;
+      if(!k) { document.getElementById('loginMsg').textContent='Enter a password.'; return; }
+      setKey(k);
+      try{
+        await call('/status');
+        loginCard.style.display='none'; adminArea.style.display='block';
+      }catch(err){
+        document.getElementById('loginMsg').textContent='Invalid password or server unavailable.';
+      }
+    });
+
+    document.getElementById('btnAddTest').addEventListener('click', ()=>{
+      const ta = document.getElementById('rosterText');
+      const add = ['29-XY','30-XY','31-XY','32-XY','33-XY'];
+      ta.value = (ta.value.trim()+'\n'+add.join('\n')).trim();
+    });
+
+    document.getElementById('btnSaveRoster').addEventListener('click', async ()=>{
+      const lines = document.getElementById('rosterText').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      try{
+        await call('/generateTokens', {method:'POST', body:{ mode:'saveRoster', students: lines }});
+        document.getElementById('tokensMsg').textContent='Roster saved.';
+      }catch(err){ document.getElementById('tokensMsg').textContent='Failed to save roster.'; }
+    });
+
+    document.getElementById('btnGenTokens').addEventListener('click', async ()=>{
+      try{
+        const res = await call('/generateTokens', {method:'POST', body:{ mode:'generate' }});
+        document.getElementById('tokensMsg').textContent = `Generated ${res.count} tokens.`;
+      }catch(err){ document.getElementById('tokensMsg').textContent='Token generation failed.'; }
+    });
+
+    document.getElementById('btnExportLinks').addEventListener('click', async()=>{
+      try{
+        const res = await call('/generateTokens', {method:'POST', body:{ mode:'export' }});
+        const rows = [['Name','Link']].concat(res.links.map(l=>[l.name,l.url]));
+        const csv = rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], {type:'text/csv'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='survey-links.csv'; a.click();
+      }catch(err){ document.getElementById('tokensMsg').textContent='Export failed.'; }
+    });
+
+    document.getElementById('btnRefresh').addEventListener('click', async()=>{
+      try{
+        const res = await call('/status');
+        const div = document.getElementById('statusArea');
+        div.innerHTML = '';
+        const p = createEl('p', {text:`Submissions: ${res.submitted}/${res.total}`});
+        div.appendChild(p);
+        if(res.students){
+          const ul = createEl('ul');
+          res.students.forEach(s=>{
+            ul.appendChild(createEl('li', {text:`${s.name} — ${s.submitted? 'Submitted' : 'Pending'}`}));
+          });
+          div.appendChild(ul);
+        }
+      }catch(err){ document.getElementById('statusArea').textContent='Cannot fetch status.'; }
+    });
+  </script>
+</body>
+</html>

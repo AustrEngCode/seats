@@ -1,0 +1,47 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seating Planner · Home</title>
+  <link rel="stylesheet" href="assets/css/theme.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="top">
+      <div class="brand"><div class="logo"></div><h1>Seating Planner</h1></div>
+      <nav>
+        <a class="btn ghost" href="/admin">Admin</a>
+      </nav>
+    </header>
+
+    <div class="card">
+      <h2>Welcome</h2>
+      <p class="small">Students should use their personal link. If you have a token, paste it below.</p>
+      <div class="row">
+        <input id="tokenInput" class="input" placeholder="Paste your token (e.g., Ab39FskLe82r)" />
+        <button class="btn" id="goBtn">Open survey</button>
+      </div>
+      <div id="msg" class="small"></div>
+    </div>
+
+    <div class="card">
+      <h3>About</h3>
+      <p>This tool collects classroom seating preferences and discipline ratings, then computes an arrangement that respects constraints (door/window halves, must-not pairs) and prioritizes wishes from more disciplined students.</p>
+    </div>
+
+    <footer>
+      <span class="badge">v0.2 · Frontend</span>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('goBtn').addEventListener('click', ()=>{
+      const t = document.getElementById('tokenInput').value.trim();
+      if(!t) { document.getElementById('msg').textContent='Enter a token.'; return; }
+      window.location.href = '/s/' + encodeURIComponent(t);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+
+:root{
+  --bg: #E8F5E9;            /* light green background */
+  --panel: #F7FFF8;         /* panels */
+  --ink: #1B4332;           /* dark green text */
+  --muted: #2D6A4F;         /* mid green */
+  --accent: #2E7D32;        /* primary action */
+  --accent-2: #52B788;      /* secondary accents */
+  --danger: #C62828;        /* error */
+  --warn: #E6B800;          /* warning */
+  --ok: #1E88E5;            /* info */
+  --shadow: 0 8px 24px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+.container{max-width:1100px;margin:0 auto;padding:1rem}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:1rem 0}
+.brand{display:flex;align-items:center;gap:.6rem}
+.brand .logo{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg, #95D5B2, #2E7D32)}
+.brand h1{font-size:1.2rem;margin:0}
+.card{background:var(--panel);border:1px solid #CDE7D8;border-radius:14px;box-shadow:var(--shadow);padding:1rem;margin:.75rem 0}
+.row{display:flex;gap:1rem;flex-wrap:wrap}
+.btn{background:var(--accent);color:white;border:none;border-radius:10px;padding:.6rem .9rem;font-weight:600;cursor:pointer}
+.btn.secondary{background:#A3D5AC;color:#0B3D2E}
+.btn.ghost{background:transparent;border:1px solid #A3D5AC;color:#0B3D2E}
+.btn.danger{background:var(--danger)}
+.input,select,textarea{width:100%;padding:.6rem;border-radius:10px;border:1px solid #B7E4C7;background:white;color:var(--ink)}
+.small{font-size:.9rem;color:#29594A}
+.grid{display:grid;gap:.5rem;justify-content:center}
+.badge{display:inline-block;padding:.2rem .5rem;border-radius:999px;border:1px solid #B7E4C7;background:#ECFDF5;color:#0B3D2E;font-size:.8rem}
+.kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;background:#E8F0FE;border:1px solid #93C5FD;padding:.05rem .35rem;border-radius:6px}
+hr{border:none;border-top:1px solid #CDE7D8;margin:1rem 0}
+
+/* Seat grid */
+.seat-grid{--w:9; --h:4; display:grid; grid-template-columns:repeat(9, 80px); gap:8px; justify-content:center; padding:1rem; background:white; border:1px solid #CDE7D8; border-radius:14px}
+.seat{width:80px;height:58px;border-radius:8px;border:1px solid #B7E4C7;display:flex;align-items:center;justify-content:center;position:relative;background:#F8FFF9;cursor:pointer}
+.seat[data-zone="door"]{box-shadow:inset 0 0 0 2px #CDE7D8}
+.seat[data-zone="window"]{box-shadow:inset 0 0 0 2px #BDE0FE}
+.seat .code{font-weight:700}
+.seat.selected{outline:3px solid #2E7D32}
+.seat.disabled{opacity:.35;cursor:not-allowed}
+.aisle{width:80px;height:58px;border-radius:8px;border:1px dashed #A3D5AC;display:flex;align-items:center;justify-content:center;color:#2D6A4F;background:#F0FFF4;font-weight:600}
+.legend{display:flex;gap:.5rem;margin:.5rem 0}
+.legend .badge.door{background:#E9F7EF;border-color:#A3D5AC}
+.legend .badge.window{background:#E8F4FF;border-color:#99C6FF}
+
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px solid #CDE7D8;padding:.5rem;text-align:left}
+.table th{color:#2D6A4F;font-size:.9rem}
+.table .center{text-align:center}
+
+.alert{padding:.75rem 1rem;border-radius:10px;margin:.5rem 0;border:1px solid #CDE7D8}
+.alert.error{background:#FDECEA;color:#7F1D1D;border-color:#F5C2C7}
+.alert.info{background:#F0F9FF;color:#0C4A6E;border-color:#BAE6FD}
+.alert.ok{background:#EEFBF3;color:#0F5132;border-color:#B7E4C7}
+
+footer{padding:2rem 0;color:#29594A}
