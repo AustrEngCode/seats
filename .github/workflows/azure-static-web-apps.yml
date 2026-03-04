@@ -20,7 +20,7 @@ jobs:
       - name: Build And Deploy
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          azure_static_web_apps_api_token: ${{ secrets.dde9643d1d753fe31bfed8f5eee30c4f637e4a096106d52968e45f4fda6f4ffd02-ab78c89d-fc7f-45f7-ab89-05a7895ad6d901021110ba012110 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
 
@@ -31,3 +31,4 @@ jobs:
 
           # since you have no frontend build, skip it so Oryx doesn't try
           skip_app_build: true
+
