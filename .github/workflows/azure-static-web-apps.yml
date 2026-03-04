@@ -43,7 +43,7 @@ jobs:
 
           # ---- SKIP BUILDS (avoid Oryx trying to build) ----
           skip_app_build: true
-          skip_api_build: true
+          
 
   close_pull_request:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -55,3 +55,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: "close"
+
