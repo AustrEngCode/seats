@@ -1,7 +1,7 @@
 
 const { TableClient, TableServiceClient } = require('@azure/data-tables');
 
-const CONN = process.env.AzureWebJobsStorage;
+const CONN = process.env.STORAGE_CONNECTION_STRING;
 const CLASS_PK = 'class1';
 const TABLES = {
   roster: 'Roster',
