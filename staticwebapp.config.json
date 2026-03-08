@@ -4,6 +4,9 @@
 }
 
 {
+  "platform": { "apiRuntime": "node:
+
+{
   "routes": [
     {
       "route": "/s/:token",
