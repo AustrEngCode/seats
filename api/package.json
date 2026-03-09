@@ -1,5 +1,13 @@
 {
+  "name": "seating-app-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
   "dependencies": {
     "@azure/data-tables": "^13.2.2",
     "uuid": "8.3.2"
- 
+  },
+  "engines": {
+    "node": ">=18 <23"
+  }
+}
