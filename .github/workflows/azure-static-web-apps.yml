@@ -23,6 +23,5 @@ jobs:
           api_location: api
           output_location: ""
           skip_app_build: true
-          # Do NOT include skip_api_build here now that package.json exists
-          ``
+          
           
