@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +6,7 @@
   <title>Seating Planner · Admin</title>
   <link rel="stylesheet" href="assets/css/theme.css" />
 </head>
+
 <body>
   <div class="container">
     <header class="top">
@@ -14,6 +14,7 @@
       <a class="btn ghost" href="/">Home</a>
     </header>
 
+    <!-- LOGIN CARD -->
     <div class="card" id="loginCard">
       <h2>Admin Sign‑in</h2>
       <div class="row">
@@ -23,17 +24,27 @@
       <div id="loginMsg" class="small"></div>
     </div>
 
+    <!-- ADMIN AREA -->
     <div id="adminArea" style="display:none">
+
+      <!-- ROSTER CARD -->
       <div class="card">
         <h2>Roster</h2>
         <div class="small">Paste one student per line. You can include your five test students (29‑XY … 33‑XY) or click the button below.</div>
-        <textarea id="roster-textarea" rows="8" class="input" placeholder="Beate\nAmel\nTobias ..."></textarea>
+
+        <textarea id="roster-textarea" rows="8" class="input"
+          placeholder="Beate&#10;Amel&#10;Tobias ..."></textarea>
+
+        <div id="roster-info" class="small" style="margin-top:.25rem;"></div>
+
         <div class="row" style="margin-top:.5rem">
           <button class="btn" id="btnAddTest">Add 29‑XY … 33‑XY</button>
           <button class="btn secondary" id="btnSaveRoster">Save Roster</button>
+          <button class="btn ghost" id="btnRefreshRoster">Refresh</button>
         </div>
       </div>
 
+      <!-- TOKENS CARD -->
       <div class="card">
         <h2>Tokens</h2>
         <div class="row">
@@ -43,19 +54,23 @@
         <div id="tokensMsg" class="small"></div>
       </div>
 
+      <!-- STATUS CARD -->
       <div class="card">
         <h2>Status</h2>
         <div class="row">
-          <button class="btn ghost" id="btnRefresh">Refresh</button>
+          <button class="btn ghost" id="btnRefreshStatus">Refresh</button>
           <button class="btn" id="btnSolve">Run Solver</button>
         </div>
         <div id="statusArea" class="small"></div>
       </div>
+
     </div>
 
     <footer><span class="badge">Admin is protected with an app setting (x-admin-key).</span></footer>
   </div>
 
+
+  <!-- MAIN ADMIN SCRIPT -->
   <script type="module">
     import { api, createEl } from './assets/js/common.js';
 
@@ -70,32 +85,64 @@
       return api(path, Object.assign({}, opts, { headers }));
     }
 
+    // ---- LOGIN ----
     document.getElementById('loginBtn').addEventListener('click', async ()=>{
       const k = document.getElementById('adminKey').value;
-      if(!k) { document.getElementById('loginMsg').textContent='Enter a password.'; return; }
+      if(!k){ document.getElementById('loginMsg').textContent='Enter a password.'; return; }
       setKey(k);
       try{
         await call('/status');
-        loginCard.style.display='none'; adminArea.style.display='block';
+        loginCard.style.display='none';
+        adminArea.style.display='block';
+        loadRoster();   // AUTO‑LOAD ROSTER HERE
       }catch(err){
         document.getElementById('loginMsg').textContent='Invalid password or server unavailable.';
       }
     });
 
+    // ---- ROSTER FUNCTIONS ----
+    function getTA(){ return document.getElementById('roster-textarea'); }
+    function setRosterInfo(msg){ document.getElementById('roster-info').textContent = msg || ''; }
+
+    async function loadRoster(){
+      try{
+        const res = await call('/status');
+        if(!res.ok) throw new Error('Failed to load roster');
+        const names = res.students.map(s=>s.name);
+        const ta = getTA(); if(ta) ta.value = names.join('\n');
+        setRosterInfo(`Saved roster: ${names.length} students`);
+      }catch(e){ setRosterInfo('Could not load roster from storage.') }
+    }
+
     document.getElementById('btnAddTest').addEventListener('click', ()=>{
-      const ta = document.getElementById('rosterText');
-      const add = ['29-XY','30-XY','31-XY','32-XY','33-XY'];
-      ta.value = (ta.value.trim()+'\n'+add.join('\n')).trim();
+      const ta = getTA(); if(!ta) return;
+      const existing = ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
+      const tests = ['29-XY','30-XY','31-XY','32-XY','33-XY'];
+      const merged = [...new Set([...existing, ...tests])];
+      ta.value = merged.join('\n');
     });
 
     document.getElementById('btnSaveRoster').addEventListener('click', async ()=>{
-      const lines = document.getElementById('rosterText').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      const ta = getTA(); if(!ta) return;
+      const students = ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
+
       try{
-        await call('/generateTokens', {method:'POST', body:{ mode:'saveRoster', students: lines }});
-        document.getElementById('tokensMsg').textContent='Roster saved.';
-      }catch(err){ document.getElementById('tokensMsg').textContent='Failed to save roster.'; }
+        const res = await call('/generateTokens', {
+          method:'POST',
+          body:{ mode:'saveRoster', students }
+        });
+        if(!res.ok) throw new Error();
+        setRosterInfo(`Saved ${res.count} students.`);
+        loadRoster(); // refresh
+      }catch(e){
+        setRosterInfo('Failed to save roster.');
+      }
     });
 
+    document.getElementById('btnRefreshRoster').addEventListener('click', loadRoster);
+
+
+    // ---- TOKENS ----
     document.getElementById('btnGenTokens').addEventListener('click', async ()=>{
       try{
         const res = await call('/generateTokens', {method:'POST', body:{ mode:'generate' }});
@@ -106,182 +153,33 @@
     document.getElementById('btnExportLinks').addEventListener('click', async()=>{
       try{
         const res = await call('/generateTokens', {method:'POST', body:{ mode:'export' }});
-        const rows = [['Name','Link']].concat(res.links.map(l=>[l.name,l.url]));
+        const rows = [['Name','Link'], ...res.links.map(l=>[l.name,l.url])];
         const csv = rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
         const blob = new Blob([csv], {type:'text/csv'});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='survey-links.csv'; a.click();
+        const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+        a.download='survey-links.csv'; a.click();
       }catch(err){ document.getElementById('tokensMsg').textContent='Export failed.'; }
     });
 
-    document.getElementById('btnRefresh').addEventListener('click', async()=>{
+
+    // ---- STATUS ----
+    document.getElementById('btnRefreshStatus').addEventListener('click', async ()=>{
       try{
         const res = await call('/status');
         const div = document.getElementById('statusArea');
-        div.innerHTML = '';
-        const p = createEl('p', {text:`Submissions: ${res.submitted}/${res.total}`});
-        div.appendChild(p);
+        div.innerHTML='';
+        div.appendChild(createEl('p',{text:`Submissions: ${res.submitted}/${res.total}`}));
         if(res.students){
-          const ul = createEl('ul');
+          const ul=createEl('ul');
           res.students.forEach(s=>{
-            ul.appendChild(createEl('li', {text:`${s.name} — ${s.submitted? 'Submitted' : 'Pending'}`}));
+            ul.appendChild(createEl('li',{text:`${s.name} — ${s.submitted?'Submitted':'Pending'}`}));
           });
           div.appendChild(ul);
         }
       }catch(err){ document.getElementById('statusArea').textContent='Cannot fetch status.'; }
     });
+
   </script>
-
-<script>
-  const ADMIN_KEY = localStorage.getItem('ADMIN_KEY') || '';
-
-  async function loadRosterIntoTextarea() {
-    try {
-      const r = await fetch('/api/status', {
-        headers: { 'x-admin-key': ADMIN_KEY }
-      });
-      const data = await r.json();
-      if (!data.ok) throw new Error(data.error || 'Failed to load');
-
-      // Map saved roster back into lines for the textarea
-      const names = (data.students || []).map(s => s.name);
-      const textarea = document.querySelector('#roster-textarea'); // adapt selector to yours
-      if (textarea) textarea.value = names.join('\n');
-
-      // (Optional) show counts somewhere on the page
-      const info = document.querySelector('#roster-info');
-      if (info) info.textContent = `Saved roster: ${names.length} students`;
-    } catch (e) {
-      console.error('Load roster failed:', e);
-    }
-  }
-
-
-<!-- Roster UI -->
-<section>
-  <h2>Roster</h2>
-  <p>Paste one student per line. You can include your five test students (29‑XY … 33‑XY) or click the button below.</p>
-
-  <textarea id="roster-textarea" rows="10" placeholder="Paste one student per line..."></textarea>
-  <div id="roster-info" class="muted" style="margin-top:.25rem;"></div>
-
-  <div style="margin-top:.5rem; display:flex; gap:.5rem;">
-    <button id="btn-add-tests"  type="button">Add 29‑XY … 33‑XY</button>
-    <button id="btn-save-roster" type="button">Save Roster</button>
-    <button id="btn-refresh" type="button">Refresh from storage</button>
-  </div>
-</section>
-
-<script>
-  // Helper: always (re)query the textarea and guard null
-  function getTA() {
-    return document.getElementById('roster-textarea');
-  }
-
-  function setInfo(msg) {
-    const el = document.getElementById('roster-info');
-    if (el) el.textContent = msg || '';
-  }
-
-  // Add 29‑33 test students (only if not already present)
-  function addTestStudents() {
-    const ta = getTA();
-    if (!ta) return console.warn('Roster textarea not found.');
-    const lines = (ta.value || '').split('\n').map(s => s.trim()).filter(Boolean);
-    const tests = ['29-XY','30-XY','31-XY','32-XY','33-XY'];
-    const have = new Set(lines.map(s => s.toLowerCase()));
-    let added = 0;
-    for (const t of tests) {
-      if (!have.has(t.toLowerCase())) { lines.push(t); added++; }
-    }
-    ta.value = lines.join('\n');
-    if (added === 0) setInfo('Test students already present.'); else setInfo(`Added ${added} test students.`);
-  }
-
-  // Save roster to the backend (uses your existing admin key)
-  async function saveRoster() {
-    const ta = getTA();
-    if (!ta) return alert('Roster box not found.');
-    const ADMIN_KEY = localStorage.getItem('ADMIN_KEY') || '';
-    if (!ADMIN_KEY) return alert('Please sign in as admin first.');
-
-    const students = (ta.value || '')
-      .split('\n')
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    try {
-      const res = await fetch('/api/generateTokens', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-admin-key': ADMIN_KEY
-        },
-        body: JSON.stringify({ mode: 'saveRoster', students })
-      }).then(r => r.json());
-
-      if (!res.ok) throw new Error(res.error || 'Failed to save roster');
-      setInfo(`Saved ${res.count} students to storage.`);
-      // (Optional) reload from storage so the textarea exactly mirrors what was persisted
-      await refreshRoster();
-    } catch (e) {
-      console.error(e);
-      alert('Failed to save roster.');
-    }
-  }
-
-  // Load roster from the backend and fill textarea
-  async function refreshRoster() {
-    const ta = getTA();
-    if (!ta) return console.warn('Roster textarea not found.');
-    const ADMIN_KEY = localStorage.getItem('ADMIN_KEY') || '';
-    if (!ADMIN_KEY) return alert('Please sign in as admin first.');
-
-    try {
-      const data = await fetch('/api/status', {
-        headers: { 'x-admin-key': ADMIN_KEY }
-      }).then(r => r.json());
-
-      if (!data.ok) throw new Error(data.error || 'Failed to load roster');
-
-      const names = (data.students || []).map(s => s.name);
-      ta.value = names.join('\n');
-      setInfo(`Saved roster: ${names.length} students`);
-    } catch (e) {
-      console.error(e);
-      setInfo('Could not load roster from storage.');
-    }
-  }
-
-
-
-  
-  // Call this after successful admin sign‑in
-  // Example: after you set ADMIN_KEY, do:
-  //   localStorage.setItem('ADMIN_KEY', key);
-  //   await loadRosterIntoTextarea();
-
-    // Wire up buttons *after* DOM is ready
-  document.addEventListener('DOMContentLoaded', () => {
-    const addBtn   = document.getElementById('btn-add-tests');
-    const saveBtn  = document.getElementById('btn-save-roster');
-    const refBtn   = document.getElementById('btn-refresh');
-
-    if (addBtn)  addBtn.addEventListener('click', addTestStudents);
-    if (saveBtn) saveBtn.addEventListener('click', saveRoster);
-    if (refBtn)  refBtn.addEventListener('click', refreshRoster);
-
-    // Auto-load if admin key already stored
-    if (localStorage.getItem('ADMIN_KEY')) {
-      refreshRoster();
-    }
-  });
-
-  
-</script>
-
-<button id="refresh-roster" type="button" onclick="loadRosterIntoTextarea()">
-  Refresh from storage
-</button>
 
 </body>
 </html>
