@@ -4,7 +4,7 @@
 const { TableClient, TableServiceClient } = require('@azure/data-tables');
 
 const CONN = process.env.STORAGE_CONNECTION_STRING; // <-- set in SWA environment variables
-const CLASS_PK = 'class'; // single-class setup
+const CLASS_PK = 'class1'; // single-class setup
 
 const TABLES = {
   roster: 'Roster',
