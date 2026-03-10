@@ -1,9 +1,20 @@
 {
   "routes": [
     {
+      "route": "/admin",
+      "rewrite": "/admin.html"
+    },
+    {
+      "route": "/assets/*",
+      "allowedRoles": ["anonymous"]
+    },
+    {
       "route": "/s/*",
       "rewrite": "/survey.html"
     }
   ],
-  "platform": { "apiRuntime": "node:18" }
+  "platform": { "apiRuntime": "node:18" },
+  "globalHeaders": {
+    "Cache-Control": "no-cache, no-store, must-revalidate"
+  }
 }
