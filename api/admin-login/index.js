@@ -1,7 +1,5 @@
 const crypto = require("crypto");
 
-
-
 function timingSafeEqualStr(a, b) {
   const ba = Buffer.from(String(a));
   const bb = Buffer.from(String(b));
@@ -10,20 +8,41 @@ function timingSafeEqualStr(a, b) {
 
 module.exports = async function (context, req) {
   try {
+    // --- Optional GET probe for quick browser check ---
+    // if ((req.method || "").toUpperCase() === "GET") {
+    //   context.res = {
+    //     status: 200,
+    //     headers: { "content-type": "application/json" },
+    //     body: { ok: true, route: "admin/login", method: "GET" }
+    //   };
+    //   return;
+    // }
+    // --- End probe ---
+
     const expected = process.env.ADMIN_PASSWORD || "";
     if (!expected) {
-      context.res = { status: 500, body: { ok: false, error: "ADMIN_PASSWORD not set" } };
+      context.res = {
+        status: 500,
+        headers: { "content-type": "application/json" },
+        body: { ok: false, error: "ADMIN_PASSWORD not set" }
+      };
       return;
     }
 
-    const body = req.body || {};
+    // Ensure we have JSON body
+    const body = req.body && typeof req.body === "object" ? req.body : {};
     const input = body.password ? String(body.password) : "";
 
     if (!timingSafeEqualStr(input, expected)) {
-      context.res = { status: 401, body: { ok: false, error: "Invalid password" } };
+      context.res = {
+        status: 401,
+        headers: { "content-type": "application/json" },
+        body: { ok: false, error: "Invalid password" }
+      };
       return;
     }
 
+    // Minimal session token (replace with JWT later if you like)
     const token = "admin-" + crypto.randomBytes(24).toString("base64url");
 
     context.res = {
@@ -34,9 +53,13 @@ module.exports = async function (context, req) {
       },
       body: { ok: true }
     };
-
   } catch (err) {
     context.log.error("admin/login error:", err);
-    context.res = { status: 500, body: { ok: false, error: String(err && err.message || err) } };
+    context.res = {
+      status: 500,
+      headers: { "content-type": "application/json" },
+      body: { ok: false, error: String(err && err.message || err) }
+    };
   }
 };
+``
