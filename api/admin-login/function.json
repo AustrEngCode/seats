@@ -3,8 +3,9 @@
     {
       "authLevel": "anonymous",
       "type": "httpTrigger",
-      "direction": "req",      "direction": "in",
-      "methods": [ "post" ],
+      "direction": "in",
+      "name": "req",
+      "methods": ["post"],   // Change to ["get","post"] temporarily if you want to probe via GET
       "route": "admin/login"
     },
     {
