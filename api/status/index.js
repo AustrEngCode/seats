@@ -84,7 +84,9 @@ module.exports = async function (context, req) {
           zone: { pref: resp.zonePref || 'any', must: !!resp.zoneMust }
         }
       : null;
-    const alreadySubmitted = !!resp || !!tokenEnt.used;
+
+    const alreadySubmitted = !!resp || tokenEnt.used === true;
+
 
     context.res = ok({
       ok: true,
