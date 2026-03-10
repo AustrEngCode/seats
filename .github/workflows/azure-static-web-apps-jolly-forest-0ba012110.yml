@@ -8,15 +8,15 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     name: Build and Deploy
+
     steps:
       - uses: actions/checkout@v4
 
-      # --- Prep API dependencies (avoid Oryx touching node_modules) ---
+      # --- Install API deps ahead of SWA to avoid broken symlinks during zipping ---
       - name: Install API deps and clean broken symlinks
         working-directory: api
         run: |
           npm ci --omit=dev
-          # remove any dangling links that break SWA zipping
           find node_modules -type l -xtype l -delete || true
 
       - name: Build And Deploy
@@ -26,11 +26,11 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
 
-          # Frontend at repo root (your screenshot shows this structure)
+          # FRONTEND is in repo root
           app_location: "/"
           output_location: ""
           skip_app_build: true
 
-          # API at /api, but DON'T build again (we already installed)
+          # API is in /api (deps installed above; avoid rebuilding)
           api_location: "api"
           skip_api_build: true
