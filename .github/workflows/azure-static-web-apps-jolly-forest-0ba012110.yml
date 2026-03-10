@@ -19,11 +19,11 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
 
-          # *** FRONTEND ***
-          app_location: "seats"   # <-- FIXED HERE
+          # Where your app REALLY is
+          app_location: "seats"
           output_location: ""
 
-          # *** BACKEND ***
-          api_location: "seats/api"  # <-- YOUR API IS ALSO INSIDE /seats
+          # Where your API REALLY is
+          api_location: "seats/api"
           skip_app_build: true
           skip_api_build: false
