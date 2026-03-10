@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # --- Install API deps ahead of SWA to avoid broken symlinks during zipping ---
+      # Pre-install API deps to avoid symlink issues
       - name: Install API deps and clean broken symlinks
         working-directory: api
         run: |
@@ -26,11 +26,13 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
 
-          # FRONTEND is in repo root
+          # ⭐ FORCE SWA to deploy the correct app folder
           app_location: "/"
+          app_artifact_location: "/"
           output_location: ""
           skip_app_build: true
 
-          # API is in /api (deps installed above; avoid rebuilding)
+          # API
           api_location: "api"
           skip_api_build: true
+``
