@@ -1,6 +1,9 @@
 {
   "routes": [
-    { "route": "/s/:token", "rewrite": "/survey.html" }
+    {
+      "route": "/s/*",
+      "rewrite": "/survey.html"
+    }
   ],
   "platform": { "apiRuntime": "node:18" }
 }
