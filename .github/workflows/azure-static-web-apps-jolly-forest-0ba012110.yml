@@ -35,4 +35,3 @@ jobs:
           # API
           api_location: "api"
           skip_api_build: true
-``
