@@ -155,10 +155,128 @@
     }
   }
 
+
+<!-- Roster UI -->
+<section>
+  <h2>Roster</h2>
+  <p>Paste one student per line. You can include your five test students (29‑XY … 33‑XY) or click the button below.</p>
+
+  <textarea id="roster-textarea" rows="10" placeholder="Paste one student per line..."></textarea>
+  <div id="roster-info" class="muted" style="margin-top:.25rem;"></div>
+
+  <div style="margin-top:.5rem; display:flex; gap:.5rem;">
+    <button id="btn-add-tests"  type="button">Add 29‑XY … 33‑XY</button>
+    <button id="btn-save-roster" type="button">Save Roster</button>
+    <button id="btn-refresh" type="button">Refresh from storage</button>
+  </div>
+</section>
+
+<script>
+  // Helper: always (re)query the textarea and guard null
+  function getTA() {
+    return document.getElementById('roster-textarea');
+  }
+
+  function setInfo(msg) {
+    const el = document.getElementById('roster-info');
+    if (el) el.textContent = msg || '';
+  }
+
+  // Add 29‑33 test students (only if not already present)
+  function addTestStudents() {
+    const ta = getTA();
+    if (!ta) return console.warn('Roster textarea not found.');
+    const lines = (ta.value || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const tests = ['29-XY','30-XY','31-XY','32-XY','33-XY'];
+    const have = new Set(lines.map(s => s.toLowerCase()));
+    let added = 0;
+    for (const t of tests) {
+      if (!have.has(t.toLowerCase())) { lines.push(t); added++; }
+    }
+    ta.value = lines.join('\n');
+    if (added === 0) setInfo('Test students already present.'); else setInfo(`Added ${added} test students.`);
+  }
+
+  // Save roster to the backend (uses your existing admin key)
+  async function saveRoster() {
+    const ta = getTA();
+    if (!ta) return alert('Roster box not found.');
+    const ADMIN_KEY = localStorage.getItem('ADMIN_KEY') || '';
+    if (!ADMIN_KEY) return alert('Please sign in as admin first.');
+
+    const students = (ta.value || '')
+      .split('\n')
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    try {
+      const res = await fetch('/api/generateTokens', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-admin-key': ADMIN_KEY
+        },
+        body: JSON.stringify({ mode: 'saveRoster', students })
+      }).then(r => r.json());
+
+      if (!res.ok) throw new Error(res.error || 'Failed to save roster');
+      setInfo(`Saved ${res.count} students to storage.`);
+      // (Optional) reload from storage so the textarea exactly mirrors what was persisted
+      await refreshRoster();
+    } catch (e) {
+      console.error(e);
+      alert('Failed to save roster.');
+    }
+  }
+
+  // Load roster from the backend and fill textarea
+  async function refreshRoster() {
+    const ta = getTA();
+    if (!ta) return console.warn('Roster textarea not found.');
+    const ADMIN_KEY = localStorage.getItem('ADMIN_KEY') || '';
+    if (!ADMIN_KEY) return alert('Please sign in as admin first.');
+
+    try {
+      const data = await fetch('/api/status', {
+        headers: { 'x-admin-key': ADMIN_KEY }
+      }).then(r => r.json());
+
+      if (!data.ok) throw new Error(data.error || 'Failed to load roster');
+
+      const names = (data.students || []).map(s => s.name);
+      ta.value = names.join('\n');
+      setInfo(`Saved roster: ${names.length} students`);
+    } catch (e) {
+      console.error(e);
+      setInfo('Could not load roster from storage.');
+    }
+  }
+
+
+
+  
   // Call this after successful admin sign‑in
   // Example: after you set ADMIN_KEY, do:
   //   localStorage.setItem('ADMIN_KEY', key);
   //   await loadRosterIntoTextarea();
+
+    // Wire up buttons *after* DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    const addBtn   = document.getElementById('btn-add-tests');
+    const saveBtn  = document.getElementById('btn-save-roster');
+    const refBtn   = document.getElementById('btn-refresh');
+
+    if (addBtn)  addBtn.addEventListener('click', addTestStudents);
+    if (saveBtn) saveBtn.addEventListener('click', saveRoster);
+    if (refBtn)  refBtn.addEventListener('click', refreshRoster);
+
+    // Auto-load if admin key already stored
+    if (localStorage.getItem('ADMIN_KEY')) {
+      refreshRoster();
+    }
+  });
+
+  
 </script>
 
 <button id="refresh-roster" type="button" onclick="loadRosterIntoTextarea()">
