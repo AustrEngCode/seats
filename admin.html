@@ -130,5 +130,37 @@
       }catch(err){ document.getElementById('statusArea').textContent='Cannot fetch status.'; }
     });
   </script>
+
+<script>
+  const ADMIN_KEY = localStorage.getItem('ADMIN_KEY') || '';
+
+  async function loadRosterIntoTextarea() {
+    try {
+      const r = await fetch('/api/status', {
+        headers: { 'x-admin-key': ADMIN_KEY }
+      });
+      const data = await r.json();
+      if (!data.ok) throw new Error(data.error || 'Failed to load');
+
+      // Map saved roster back into lines for the textarea
+      const names = (data.students || []).map(s => s.name);
+      const textarea = document.querySelector('#roster-textarea'); // adapt selector to yours
+      if (textarea) textarea.value = names.join('\n');
+
+      // (Optional) show counts somewhere on the page
+      const info = document.querySelector('#roster-info');
+      if (info) info.textContent = `Saved roster: ${names.length} students`;
+    } catch (e) {
+      console.error('Load roster failed:', e);
+    }
+  }
+
+  // Call this after successful admin sign‑in
+  // Example: after you set ADMIN_KEY, do:
+  //   localStorage.setItem('ADMIN_KEY', key);
+  //   await loadRosterIntoTextarea();
+</script>
+
+  
 </body>
 </html>
