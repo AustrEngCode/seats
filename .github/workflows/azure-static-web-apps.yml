@@ -20,11 +20,10 @@ jobs:
           action: "upload"
 
           # *** FRONTEND ***
-          app_location: "/"
-          output_location: ""     # upload the static files directly
-          skip_app_build: true    # no build needed for HTML-only site
+          app_location: "seats"   # <-- FIXED HERE
+          output_location: ""
 
           # *** BACKEND ***
-          api_location: "api"
-          # NOW that your API has package.json:
+          api_location: "seats/api"  # <-- YOUR API IS ALSO INSIDE /seats
+          skip_app_build: true
           skip_api_build: false
