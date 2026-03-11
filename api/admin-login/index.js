@@ -8,17 +8,6 @@ function timingSafeEqualStr(a, b) {
 
 module.exports = async function (context, req) {
   try {
-    // --- Optional GET probe for quick browser check ---
-    // if ((req.method || "").toUpperCase() === "GET") {
-    //   context.res = {
-    //     status: 200,
-    //     headers: { "content-type": "application/json" },
-    //     body: { ok: true, route: "admin/login", method: "GET" }
-    //   };
-    //   return;
-    // }
-    // --- End probe ---
-
     const expected = process.env.ADMIN_PASSWORD || "";
     if (!expected) {
       context.res = {
@@ -29,7 +18,6 @@ module.exports = async function (context, req) {
       return;
     }
 
-    // Ensure we have JSON body
     const body = req.body && typeof req.body === "object" ? req.body : {};
     const input = body.password ? String(body.password) : "";
 
@@ -42,7 +30,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    // Minimal session token (replace with JWT later if you like)
+    // Minimal session token (JWT can be added later)
     const token = "admin-" + crypto.randomBytes(24).toString("base64url");
 
     context.res = {
@@ -58,8 +46,7 @@ module.exports = async function (context, req) {
     context.res = {
       status: 500,
       headers: { "content-type": "application/json" },
-      body: { ok: false, error: String(err && err.message || err) }
+      body: { ok: false, error: String((err && err.message) || err) }
     };
   }
 };
-``
