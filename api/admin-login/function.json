@@ -1,11 +1,12 @@
 {
+  "scriptFile": "index.js",
   "bindings": [
     {
       "authLevel": "anonymous",
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": ["post"],   // Change to ["get","post"] temporarily if you want to probe via GET
+      "methods": ["post"],
       "route": "admin/login"
     },
     {
